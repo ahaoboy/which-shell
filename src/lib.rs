@@ -35,6 +35,9 @@ pub enum Shell {
     Cmd,
     Nu,
     Dash,
+    Ksh,
+    Tcsh,
+    Csh,
     Unknown,
 }
 
@@ -66,6 +69,11 @@ impl From<&str> for Shell {
             "cmd" => Shell::Cmd,
             "nu" => Shell::Nu,
             "dash" => Shell::Dash,
+            "ksh" => Shell::Ksh,
+            "ksh93" => Shell::Ksh,
+            "tcsh" => Shell::Tcsh,
+            "csh" => Shell::Csh,
+            "bsd-csh" => Shell::Csh,
             _ => Shell::Unknown,
         }
     }
@@ -82,6 +90,9 @@ impl Display for Shell {
             Shell::Pwsh => "pwsh",
             Shell::Nu => "nu",
             Shell::Dash => "dash",
+            Shell::Ksh => "ksh",
+            Shell::Tcsh => "tcsh",
+            Shell::Csh => "csh",
             Shell::Unknown => "unknown",
         };
         f.write_str(s)
@@ -91,6 +102,7 @@ impl Display for Shell {
 fn get_shell_version(sh: Shell) -> Option<String> {
     let args = match sh {
         Shell::PowerShell => vec!["-c", "$PSVersionTable.PSVersion -replace '\\D', '.'"],
+        Shell::Ksh => vec!["-c", "echo $KSH_VERSION"],
         _ => vec!["--version"],
     };
     let version = exec(sh.to_string().as_str(), args)?;
@@ -126,14 +138,27 @@ fn get_shell_version(sh: Shell) -> Option<String> {
                 .trim();
             Some(s.into())
         }
-        // 5.1.26100.2161
-        Shell::PowerShell => Some(version),
+        Shell::PowerShell => {
+            // 5.1.26100.2161
+            Some(version)
+        }
         Shell::Nu => {
             // 0.99.0
             Some(version)
         }
-        // zsh 5.9 (x86_64-ubuntu-linux-gnu)
+        Shell::Ksh => {
+            // Version AJM 93u+m/1.0.8 2024-01-01
+            let v = version.split("/").nth(1)?;
+            let v = v.split(" ").next().map(|s| s.trim().to_string());
+            v
+        }
         Shell::Zsh => {
+            // zsh 5.9 (x86_64-ubuntu-linux-gnu)
+            let v = version.split(" ").nth(1).map(|s| s.trim().to_string());
+            v
+        }
+        Shell::Tcsh => {
+            // tcsh 6.24.13 (Astron) 2024-06-12 (x86_64-unknown-linux) options wide,nls,dl,al,kan,sm,rh,nd,color,filec
             let v = version.split(" ").nth(1).map(|s| s.trim().to_string());
             v
         }
@@ -143,6 +168,7 @@ fn get_shell_version(sh: Shell) -> Option<String> {
 
 pub fn which_shell() -> Option<ShellVersion> {
     let system = System::new_all();
+    // FIXME: maybe we don't need this
     // system.refresh_all();
     let mut pid = std::process::id() as usize;
     while let Some(process) = system.process(Pid::from(pid)) {
