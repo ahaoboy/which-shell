@@ -129,6 +129,11 @@ fn get_shell_version(sh: Shell) -> Option<String> {
             // 0.99.0
             Some(version)
         }
+        // zsh 5.9 (x86_64-ubuntu-linux-gnu)
+        Shell::Zsh => {
+            let v = version.split(" ").nth(1).map(|s| s.trim().to_string());
+            v
+        }
         _ => None,
     }
 }
