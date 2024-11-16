@@ -6,11 +6,7 @@ use std::{
 };
 use sysinfo::{Pid, System};
 
-pub fn is_cargo_run() -> bool {
-    std::env::var("CARGO").is_ok()
-}
-
-pub fn exec<I, S>(cmd: S, args: I) -> Option<String>
+fn exec<I, S>(cmd: S, args: I) -> Option<String>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
@@ -23,7 +19,7 @@ where
     Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
-pub fn get_file_name(path: &str) -> Option<String> {
+fn get_file_name(path: &str) -> Option<String> {
     let path = path.replace('\\', "/");
     let name = path.split('/').last()?.split('.').next()?.trim();
     Some(name.into())
@@ -43,8 +39,8 @@ pub enum Shell {
 
 #[derive(Debug, Clone)]
 pub struct ShellVersion {
-    shell: Shell,
-    version: Option<String>,
+    pub shell: Shell,
+    pub version: Option<String>,
 }
 
 impl Display for ShellVersion {
@@ -89,7 +85,7 @@ impl Display for Shell {
     }
 }
 
-pub fn get_shell_version(sh: Shell) -> Option<String> {
+fn get_shell_version(sh: Shell) -> Option<String> {
     let args = match sh {
         Shell::PowerShell => vec!["-c", "$PSVersionTable.PSVersion -replace '\\D', '.'"],
         _ => vec!["--version"],
@@ -137,7 +133,7 @@ pub fn get_shell_version(sh: Shell) -> Option<String> {
     }
 }
 
-pub fn get_shell() -> Option<ShellVersion> {
+pub fn which_shell() -> Option<ShellVersion> {
     let system = System::new_all();
     // system.refresh_all();
     let mut pid = std::process::id() as usize;
