@@ -4,6 +4,7 @@ use std::{
     ffi::OsStr,
     process::{Command, Stdio},
 };
+use sysinfo::{Pid, System};
 
 pub fn is_cargo_run() -> bool {
     std::env::var("CARGO").is_ok()
@@ -89,7 +90,11 @@ impl Display for Shell {
 }
 
 pub fn get_shell_version(sh: Shell) -> Option<String> {
-    let version = exec(sh.to_string().as_str(), ["--version"])?;
+    let args = match sh {
+        Shell::PowerShell => vec!["-c", "$PSVersionTable.PSVersion -replace '\\D', '.'"],
+        _ => vec!["--version"],
+    };
+    let version = exec(sh.to_string().as_str(), args)?;
     match sh {
         Shell::Fish => {
             // fish, version 3.6.1
@@ -122,6 +127,8 @@ pub fn get_shell_version(sh: Shell) -> Option<String> {
                 .trim();
             Some(s.into())
         }
+        // 5.1.26100.2161
+        Shell::PowerShell => Some(version),
         Shell::Nu => {
             // 0.99.0
             Some(version)
@@ -130,56 +137,11 @@ pub fn get_shell_version(sh: Shell) -> Option<String> {
     }
 }
 
-#[cfg(windows)]
 pub fn get_shell() -> Option<ShellVersion> {
-    let list = exec("wmic", ["process", "get", "ExecutablePath"]).or(exec(
-        "powershell",
-        [
-            "-c",
-            "Get-CimInstance Win32_Process | Select-Object ExecutablePath",
-        ],
-    ))?;
-    let skip = if is_cargo_run() { 2 } else { 1 };
-    let list = list
-        .trim()
-        .lines()
-        .rev()
-        .filter(|i| !i.trim().is_empty())
-        .skip(skip);
-    for path in list {
-        let cmd = get_file_name(path)?;
-        let shell: Shell = cmd.as_str().into();
-        match shell {
-            Shell::Unknown => {
-                continue;
-            }
-            _ => {
-                let version = get_shell_version(shell);
-                return Some(ShellVersion { shell, version });
-            }
-        }
-    }
-
-    None
-}
-
-#[cfg(unix)]
-pub fn get_shell() -> Option<ShellVersion> {
-    use sysinfo::{Pid, System};
-
-    let mut system = System::new_all();
-    system.refresh_all();
-
+    let system = System::new_all();
+    // system.refresh_all();
     let mut pid = std::process::id() as usize;
-
-    println!("Tracing process tree:");
     while let Some(process) = system.process(Pid::from(pid)) {
-        println!(
-            "Process ID: {}, Parent ID: {:?}, Name: {:?}",
-            pid,
-            process.parent(),
-            process.exe()
-        );
         let path = process.exe()?.to_str()?;
         let cmd = get_file_name(path)?;
         let shell: Shell = cmd.as_str().into();
