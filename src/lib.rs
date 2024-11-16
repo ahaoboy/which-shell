@@ -34,6 +34,7 @@ pub enum Shell {
     Pwsh,
     Cmd,
     Nu,
+    Dash,
     Unknown,
 }
 
@@ -64,6 +65,7 @@ impl From<&str> for Shell {
             "pwsh" => Shell::Pwsh,
             "cmd" => Shell::Cmd,
             "nu" => Shell::Nu,
+            "dash" => Shell::Dash,
             _ => Shell::Unknown,
         }
     }
@@ -79,6 +81,7 @@ impl Display for Shell {
             Shell::Cmd => "cmd",
             Shell::Pwsh => "pwsh",
             Shell::Nu => "nu",
+            Shell::Dash => "dash",
             Shell::Unknown => "unknown",
         };
         f.write_str(s)
