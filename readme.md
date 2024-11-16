@@ -16,3 +16,4 @@ fish 3.7.1
 - [x] PowerShell
 - [x] Pwsh
 - [x] Cmd
+- [x] Nu

@@ -36,6 +36,7 @@ pub enum Shell {
     PowerShell,
     Pwsh,
     Cmd,
+    Nu,
     Unknown,
 }
 
@@ -65,6 +66,7 @@ impl From<&str> for Shell {
             "bash" => Shell::Bash,
             "pwsh" => Shell::Pwsh,
             "cmd" => Shell::Cmd,
+            "nu" => Shell::Nu,
             _ => Shell::Unknown,
         }
     }
@@ -79,6 +81,7 @@ impl Display for Shell {
             Shell::PowerShell => "powershell",
             Shell::Cmd => "cmd",
             Shell::Pwsh => "pwsh",
+            Shell::Nu => "nu",
             Shell::Unknown => "unknown",
         };
         f.write_str(s)
@@ -119,6 +122,10 @@ pub fn get_shell_version(sh: Shell) -> Option<String> {
                 .trim();
             Some(s.into())
         }
+        Shell::Nu => {
+            // 0.99.0
+            Some(version)
+        }
         _ => None,
     }
 }
@@ -158,13 +165,38 @@ pub fn get_shell() -> Option<ShellVersion> {
 
 #[cfg(unix)]
 pub fn get_shell() -> Option<ShellVersion> {
-    if let Ok(sh) = std::env::var("SHELL") {
-        let name = get_file_name(&sh)?;
-        let shell: Shell = name.as_str().into();
-        let version = get_shell_version(shell).unwrap_or_default();
+    use sysinfo::{Pid, System};
 
-        return ShellVersion { shell, version }.into();
+    let mut system = System::new_all();
+    system.refresh_all();
+
+    let mut pid = std::process::id() as usize;
+
+    println!("Tracing process tree:");
+    while let Some(process) = system.process(Pid::from(pid)) {
+        println!(
+            "Process ID: {}, Parent ID: {:?}, Name: {:?}",
+            pid,
+            process.parent(),
+            process.exe()
+        );
+        let path = process.exe()?.to_str()?;
+        let cmd = get_file_name(path)?;
+        let shell: Shell = cmd.as_str().into();
+        match shell {
+            Shell::Unknown => {
+                if let Some(parent_id) = process.parent() {
+                    pid = parent_id.as_u32() as usize;
+                } else {
+                    break;
+                }
+                continue;
+            }
+            _ => {
+                let version = get_shell_version(shell);
+                return Some(ShellVersion { shell, version });
+            }
+        }
     }
-
     None
 }
