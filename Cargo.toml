@@ -2,6 +2,11 @@
 name = "which-shell"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "which-shell"
+repository = "https://github.com/ahaoboy/which-shell"
+homepage = "https://github.com/ahaoboy/which-shell"
+authors = ["ahaoboy"]
 
 [dependencies]
 regex = "1"
