@@ -25,7 +25,7 @@ fn get_file_name(path: &str) -> Option<String> {
     Some(name.into())
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shell {
     Bash,
     Zsh,
@@ -41,7 +41,7 @@ pub enum Shell {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ShellVersion {
     pub shell: Shell,
     pub version: Option<String>,
@@ -170,15 +170,15 @@ pub fn which_shell() -> Option<ShellVersion> {
     let system = System::new_all();
     // FIXME: maybe we don't need this
     // system.refresh_all();
-    let mut pid = std::process::id() as usize;
-    while let Some(process) = system.process(Pid::from(pid)) {
+    let mut pid = std::process::id();
+    while let Some(process) = system.process(Pid::from_u32(pid)) {
         let path = process.exe()?.to_str()?;
         let cmd = get_file_name(path)?;
         let shell: Shell = cmd.as_str().into();
         match shell {
             Shell::Unknown => {
                 if let Some(parent_id) = process.parent() {
-                    pid = parent_id.as_u32() as usize;
+                    pid = parent_id.as_u32();
                 } else {
                     break;
                 }
