@@ -38,6 +38,7 @@ pub enum Shell {
     Ksh,
     Tcsh,
     Csh,
+    Sh,
     Unknown,
 }
 
@@ -74,6 +75,7 @@ impl From<&str> for Shell {
             "tcsh" => Shell::Tcsh,
             "csh" => Shell::Csh,
             "bsd-csh" => Shell::Csh,
+            "sh" => Shell::Sh,
             _ => Shell::Unknown,
         }
     }
@@ -93,6 +95,7 @@ impl Display for Shell {
             Shell::Ksh => "ksh",
             Shell::Tcsh => "tcsh",
             Shell::Csh => "csh",
+            Shell::Sh => "sh",
             Shell::Unknown => "unknown",
         };
         f.write_str(s)
