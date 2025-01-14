@@ -1,6 +1,6 @@
 [package]
 name = "which-shell"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "which-shell"
@@ -10,4 +10,4 @@ authors = ["ahaoboy"]
 
 [dependencies]
 regex = "^1"
-sysinfo = "^0.32"
+sysinfo = "^0.33"
