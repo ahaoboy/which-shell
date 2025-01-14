@@ -9,5 +9,5 @@ homepage = "https://github.com/ahaoboy/which-shell"
 authors = ["ahaoboy"]
 
 [dependencies]
-regex = "1"
-sysinfo = "0.32"
+regex = "^1"
+sysinfo = "^0.32"
