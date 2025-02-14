@@ -1,9 +1,6 @@
 use regex::Regex;
 use std::fmt::Display;
-use std::{
-    ffi::OsStr,
-    process::{Command, Stdio},
-};
+use std::{ffi::OsStr, process::Command};
 use sysinfo::{Pid, System};
 
 fn exec<I, S>(cmd: S, args: I) -> Option<String>
@@ -13,10 +10,11 @@ where
 {
     let output = Command::new(cmd)
         .args(args)
-        .stdin(Stdio::null())
+        .envs(std::env::vars())
         .output()
         .ok()?;
-    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Some(s)
 }
 
 fn get_file_name(path: &str) -> Option<String> {
@@ -112,11 +110,11 @@ fn get_shell_version(sh: Shell) -> Option<String> {
     match sh {
         Shell::Fish => {
             // fish, version 3.6.1
-            return Some(version[14..].trim().into());
+            Some(version[14..].trim().into())
         }
         Shell::Pwsh => {
             // PowerShell 7.4.1
-            return Some(version[11..].trim().into());
+            Some(version[11..].trim().into())
         }
         Shell::Bash => {
             // GNU bash, version 5.2.26(1)-release (aarch64-unknown-linux-android)
