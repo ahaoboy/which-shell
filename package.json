@@ -1,0 +1,46 @@
+{
+  "name": "which-shell",
+  "version": "0.1.0",
+  "description": "which-shell",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "bin": {
+    "which-shell": "bundle/cli.js"
+  },
+  "files": [
+    "dist",
+    "bundle",
+    "readme.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahaoboy/which-shell.git"
+  },
+  "homepage": "https://github.com/ahaoboy/which-shell#readme",
+  "keywords": [
+    "which-shell"
+  ],
+  "author": "ahaoboy",
+  "license": "ISC",
+  "scripts": {
+    "dev": "tsc -w -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.json && npm run bundle",
+    "bundle": "esbuild --outdir=bundle --bundle --minify --platform=node --format=cjs ts/cli.ts",
+    "format": "deno fmt --ignore=node_modules,dist,bundle,target --indent-width=2 --no-semicolons --single-quote",
+    "pre-check": "npm run clippy && npm run format",
+    "clippy": "cargo clippy --fix --allow-dirty --allow-staged",
+    "clear": "rm -rf node_modules dist bundle",
+    "bump": "pnpm up --latest --force",
+    "release": "pnpm publish -r --access public",
+    "release-alpha": "pnpm publish -r --access public --tag alpha"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "esbuild": "0.25.0",
+    "@types/node": "^22.10.7",
+    "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": []
+  }
+}
