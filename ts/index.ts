@@ -22,22 +22,21 @@ export type ShellVersion = {
 }
 
 function getPpidUnix(pid: number): { name: string; pid: number } | undefined {
-  const s = spawnSync('ps', ['-p', pid.toString(), '-o', 'comm,ppid'])
+  const s = spawnSync('ps', ['-p', pid.toString(), '-o', 'ppid=,comm='])
   if (!s.stdout || s.status !== 0) {
     return
   }
   const stdout = s.stdout.toString().trim()
-  const v = stdout?.replaceAll('\r\n', '\n').split('\n').map((i) => i.trim())[1]
-  if (!v) {
+  if (!stdout) {
     return
   }
-  const re = /^(\S+)\s+(\d+)$/
-  const ret = v.match(re)
+  const re = /^(\d+)\s+(\S+)$/
+  const ret = stdout.match(re)
   if (!ret) {
     return
   }
-  const name = getFilename(ret[1].trim())
-  const ppid = +ret[2].trim()
+  const ppid = +ret[1].trim()
+  const name = getFilename(ret[2].trim())
   if (name && Number.isInteger(ppid)) {
     return { pid: ppid, name }
   }

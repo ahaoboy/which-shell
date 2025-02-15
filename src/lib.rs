@@ -22,7 +22,6 @@ where
         .envs(std::env::vars())
         .output()
         .ok()?;
-    println!("{:?}", output.stdout);
     let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
     Some(s)
 }
@@ -179,19 +178,12 @@ fn get_shell_version(sh: Shell) -> Option<String> {
 
 pub fn which_shell() -> Option<ShellVersion> {
     let mut pid = std::process::id();
-    println!("pid: {}", pid);
     while let Some((ppid, path)) = get_ppid(pid) {
-        println!("ppid: {} {}", ppid, path);
         let cmd = get_file_name(&path)?;
         let shell: Shell = cmd.as_str().into();
         match shell {
             Shell::Unknown => {
                 pid = ppid;
-                // if let Some((parent_id, _)) = get_ppid(pid) {
-                //     pid = parent_id;
-                // } else {
-                //     break;
-                // }
                 continue;
             }
             _ => {
