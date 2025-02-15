@@ -32,7 +32,7 @@ function getPpidUnix(pid: number): { name: string; pid: number } | undefined {
   }
   const re = /^(\d+)\s+(\S+)$/
   const ret = stdout.match(re)
-  if (!ret) {
+  if (!ret || !ret[1] || !ret[2]) {
     return
   }
   const ppid = +ret[1].trim()
