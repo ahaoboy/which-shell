@@ -1,7 +1,16 @@
 use regex::Regex;
 use std::fmt::Display;
 use std::{ffi::OsStr, process::Command};
-use sysinfo::{Pid, System};
+
+#[cfg(unix)]
+mod unix;
+#[cfg(unix)]
+use unix::*;
+
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use windows::*;
 
 fn exec<I, S>(cmd: S, args: I) -> Option<String>
 where
@@ -13,6 +22,7 @@ where
         .envs(std::env::vars())
         .output()
         .ok()?;
+    println!("{:?}", output.stdout);
     let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
     Some(s)
 }
@@ -168,21 +178,20 @@ fn get_shell_version(sh: Shell) -> Option<String> {
 }
 
 pub fn which_shell() -> Option<ShellVersion> {
-    let system = System::new_all();
-    // FIXME: maybe we don't need this
-    // system.refresh_all();
     let mut pid = std::process::id();
-    while let Some(process) = system.process(Pid::from_u32(pid)) {
-        let path = process.exe()?.to_str()?;
-        let cmd = get_file_name(path)?;
+    println!("pid: {}", pid);
+    while let Some((ppid, path)) = get_ppid(pid) {
+        println!("ppid: {} {}", ppid, path);
+        let cmd = get_file_name(&path)?;
         let shell: Shell = cmd.as_str().into();
         match shell {
             Shell::Unknown => {
-                if let Some(parent_id) = process.parent() {
-                    pid = parent_id.as_u32();
-                } else {
-                    break;
-                }
+                pid = ppid;
+                // if let Some((parent_id, _)) = get_ppid(pid) {
+                //     pid = parent_id;
+                // } else {
+                //     break;
+                // }
                 continue;
             }
             _ => {
