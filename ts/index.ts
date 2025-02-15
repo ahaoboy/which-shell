@@ -31,12 +31,12 @@ function getPpidUnix(pid: number): { name: string; pid: number } | undefined {
     return
   }
   const re = /^(\d+)\s+(\S+)$/
-  const ret = stdout.match(re)
-  if (!ret || !ret[1] || !ret[2]) {
+  const v = stdout.match(re)
+  if (!v || !v[1] || !v[2]) {
     return
   }
-  const ppid = +ret[1].trim()
-  const name = getFilename(ret[2].trim())
+  const ppid = +v[1].trim()
+  const name = getFilename(v[2].trim())
   if (name && Number.isInteger(ppid)) {
     return { pid: ppid, name }
   }
@@ -54,6 +54,9 @@ function getPpidWindows(
   }
   const stdout = s.stdout.toString().trim()
   const v = stdout?.replaceAll('\r\n', '\n').split('\n').map((i) => i.trim())
+  if (!v[0] || !v[1]) {
+    return
+  }
   const ppid = +v[0]
   const name = getFilename(v[1])
   if (!Number.isInteger(ppid) || !name) {
