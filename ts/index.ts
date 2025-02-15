@@ -20,9 +20,8 @@ export type ShellVersion = {
   shell: SHELL
   version?: string
 }
-
-function getPpidUnix(pid: number): { name: string; pid: number } | undefined {
-  const s = spawnSync('ps', ['-p', pid.toString(), '-o', 'ppid=,comm='])
+function getNameUnix(pid: number): string | undefined {
+  const s = spawnSync('ps', ['-p', pid.toString(), '-o', 'comm='])
   if (!s.stdout || s.status !== 0) {
     return
   }
@@ -30,42 +29,63 @@ function getPpidUnix(pid: number): { name: string; pid: number } | undefined {
   if (!stdout) {
     return
   }
-  const re = /^(\d+)\s+(\S+)$/
-  const v = stdout.match(re)
-  if (!v || !v[1] || !v[2]) {
+  return getFilename(stdout)
+}
+
+function getPpidUnix(pid: number): number | undefined {
+  const s = spawnSync('ps', ['-p', pid.toString(), '-o', 'ppid='])
+  if (!s.stdout || s.status !== 0) {
     return
   }
-  const ppid = +v[1].trim()
-  const name = getFilename(v[2].trim())
-  if (name && Number.isInteger(ppid)) {
-    return { pid: ppid, name }
+  const stdout = s.stdout.toString().trim()
+  const ppid = +stdout
+  if (Number.isInteger(ppid)) {
+    return ppid
   }
   return
 }
 
-function getPpidWindows(
-  pid: number,
-): { name: string; pid: number } | undefined {
+function getNameWindows(pid: number): string | undefined {
   const cmd =
-    `$p = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = ${pid}"); Write-Output $p.ParentProcessId $p.Name`
+    `$p = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = ${pid}"); Write-Output $p.Name`
   const s = spawnSync('powershell', ['-c', cmd])
   if (!s.stdout || s.status !== 0) {
     return
   }
   const stdout = s.stdout.toString().trim()
-  const v = stdout?.replaceAll('\r\n', '\n').split('\n').map((i) => i.trim())
-  if (!v[0] || !v[1]) {
-    return
-  }
-  const ppid = +v[0]
-  const name = getFilename(v[1])
-  if (!Number.isInteger(ppid) || !name) {
-    return
-  }
-  return { pid: ppid, name }
+  return getFilename(stdout)
 }
 
-const getPpid = process.platform === 'win32' ? getPpidWindows : getPpidUnix
+function getPpidWindows(
+  pid: number,
+): number | undefined {
+  const cmd =
+    `$p = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = ${pid}"); Write-Output $p.ParentProcessId`
+  const s = spawnSync('powershell', ['-c', cmd])
+  if (!s.stdout || s.status !== 0) {
+    return
+  }
+  const stdout = s.stdout.toString().trim()
+  const ppid = +stdout
+  if (!Number.isInteger(ppid)) {
+    return
+  }
+  return ppid
+}
+
+function getInfo(id: number): undefined | { pid: number; name: string } {
+  const pidFn = process.platform === 'win32' ? getPpidWindows : getPpidUnix
+  const nameFn = process.platform === 'win32' ? getNameWindows : getNameUnix
+  const pid = pidFn(id)
+  if (!pid) {
+    return
+  }
+  const name = nameFn(pid)
+  if (!name) {
+    return
+  }
+  return { pid, name }
+}
 
 function isShell(sh: string): sh is SHELL {
   return SHELLS.includes(sh as SHELL)
@@ -134,12 +154,12 @@ export function whichShell(): ShellVersion | undefined {
   let pid = process.pid
   let name = ''
   while (pid) {
-    const pp = getPpid(pid)
-    if (!pp) {
+    const info = getInfo(pid)
+    if (!info) {
       break
     }
-    pid = pp.pid
-    name = pp.name
+    pid = info.pid
+    name = info.name
     const sh = guessShell(name)
     if (sh) {
       return sh
