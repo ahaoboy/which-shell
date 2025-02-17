@@ -7,6 +7,7 @@ description = "which-shell"
 repository = "https://github.com/ahaoboy/which-shell"
 homepage = "https://github.com/ahaoboy/which-shell"
 authors = ["ahaoboy"]
+include = ["src", "Cargo.toml", "README.md"]
 
 [dependencies]
 regex = "^1"
