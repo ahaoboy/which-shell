@@ -21,3 +21,16 @@ pub fn get_ppid(pid: u32) -> Option<(u32, String)> {
         .first()
         .map(|process| (process.pid, process.name.clone()))
 }
+
+#[cfg(feature = "async")]
+pub async fn get_ppid_async(pid: u32) -> Option<(u32, String)> {
+    let com_con = COMLibrary::new().unwrap();
+    let wmi_con = WMIConnection::new(com_con).unwrap();
+
+    let query = format!("SELECT Name,ParentProcessId FROM Win32_Process WHERE ProcessId = {pid}");
+    let results: Vec<Proc> = wmi_con.async_raw_query(&query).await.unwrap();
+
+    results
+        .first()
+        .map(|process| (process.pid, process.name.clone()))
+}

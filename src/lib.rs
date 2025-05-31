@@ -194,3 +194,23 @@ pub fn which_shell() -> Option<ShellVersion> {
     }
     None
 }
+
+#[cfg(feature = "async")]
+pub async fn which_shell_async() -> Option<ShellVersion> {
+    let mut pid = std::process::id();
+    while let Some((ppid, path)) = get_ppid_async(pid).await {
+        let cmd = get_file_name(&path)?;
+        let shell: Shell = cmd.as_str().into();
+        match shell {
+            Shell::Unknown => {
+                pid = ppid;
+                continue;
+            }
+            _ => {
+                let version = get_shell_version(shell);
+                return Some(ShellVersion { shell, version });
+            }
+        }
+    }
+    None
+}
