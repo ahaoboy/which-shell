@@ -1,23 +1,23 @@
-use crate::exec;
+use serde::Deserialize;
+use wmi::{COMLibrary, WMIConnection};
 
-fn get_id(pid: u32) -> Option<u32> {
-    let cmd = format!(
-        r#"$p = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = {pid}"); Write-Output $p.ParentProcessId"#
-    );
-    let s = exec("powershell", ["-c", &cmd])?;
-    s.trim().parse().ok()
-}
-
-fn get_name(pid: u32) -> Option<String> {
-    let cmd = format!(
-        r#"$p = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = {pid}"); Write-Output $p.Name"#
-    );
-    let s = exec("powershell", ["-c", &cmd])?;
-    Some(s.trim().to_string())
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename = "Win32_Process")]
+pub struct Proc {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "ParentProcessId")]
+    pub pid: u32,
 }
 
 pub fn get_ppid(pid: u32) -> Option<(u32, String)> {
-    let ppid = get_id(pid)?;
-    let name = get_name(ppid)?;
-    Some((ppid, name))
+    let com_con = COMLibrary::new().unwrap();
+    let wmi_con = WMIConnection::new(com_con).unwrap();
+
+    let query = format!("SELECT Name,ParentProcessId FROM Win32_Process WHERE ProcessId = {pid}");
+    let results: Vec<Proc> = wmi_con.raw_query(&query).unwrap();
+
+    results
+        .first()
+        .map(|process| (process.pid, process.name.clone()))
 }
