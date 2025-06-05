@@ -28,7 +28,7 @@ where
 
 fn get_file_name(path: &str) -> Option<String> {
     let path = path.replace('\\', "/");
-    let name = path.split('/').last()?.split('.').next()?.trim();
+    let name = path.split('/').next_back()?.split('.').next()?.trim();
     Some(name.into())
 }
 
@@ -142,7 +142,7 @@ fn get_shell_version(sh: Shell) -> Option<String> {
                 .lines()
                 .next()?
                 .split(' ')
-                .last()?
+                .next_back()?
                 .split(']')
                 .next()?
                 .trim();
