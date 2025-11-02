@@ -41,7 +41,7 @@ jobs:
       - name: run cross-build
         uses: ahaoboy/cross-build@v1
         with:
-          bin: crud-path
+          bin: which-shell
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           target: ${{ matrix.target }}
           RUSTFLAGS: ${{ matrix.RUSTFLAGS }}
