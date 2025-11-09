@@ -159,18 +159,18 @@ fn get_shell_version(sh: Shell) -> Option<String> {
         Shell::Ksh => {
             // Version AJM 93u+m/1.0.8 2024-01-01
             let v = version.split("/").nth(1)?;
-            let v = v.split(" ").next().map(|s| s.trim().to_string());
-            v
+            
+            v.split(" ").next().map(|s| s.trim().to_string())
         }
         Shell::Zsh => {
             // zsh 5.9 (x86_64-ubuntu-linux-gnu)
-            let v = version.split(" ").nth(1).map(|s| s.trim().to_string());
-            v
+            
+            version.split(" ").nth(1).map(|s| s.trim().to_string())
         }
         Shell::Tcsh => {
             // tcsh 6.24.13 (Astron) 2024-06-12 (x86_64-unknown-linux) options wide,nls,dl,al,kan,sm,rh,nd,color,filec
-            let v = version.split(" ").nth(1).map(|s| s.trim().to_string());
-            v
+            
+            version.split(" ").nth(1).map(|s| s.trim().to_string())
         }
         _ => None,
     }

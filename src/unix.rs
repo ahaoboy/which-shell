@@ -6,11 +6,10 @@ fn get_id(pid: u32) -> Option<u32> {
         .and_then(|s| {
             for line in s.lines() {
                 let header = "PPid:";
-                if line.starts_with("PPid:") {
-                    if let Ok(n) = line[header.len()..].trim().parse() {
+                if line.starts_with("PPid:")
+                    && let Ok(n) = line[header.len()..].trim().parse() {
                         return Some(n);
                     }
-                }
             }
             None
         })
