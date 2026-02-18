@@ -135,12 +135,12 @@ fn get_dash_version() -> Option<String> {
     }
 
     // Try pacman (Arch Linux)
-    if let Some(out) = exec("pacman", vec!["-Qi", "dash"]) {
+    // dash 0.5.12-1
+    if let Some(out) = exec("pacman", vec!["-Q", "dash"]) {
         for line in out.lines() {
-            if line.starts_with("Version")
-                && let Some((_, v)) = line.split_once(':') {
-                    return Some(v.trim().to_string());
-                }
+            if let Some((_, v)) = line.split_once(' ') {
+                return Some(v.trim().to_string());
+            }
         }
         if let Some(v) = extract_version(&out) {
             return Some(v);
@@ -195,7 +195,9 @@ fn get_shell_version(sh: Shell) -> Option<String> {
         }
         Shell::Pwsh => {
             // PowerShell 7.4.1
-            version.strip_prefix("PowerShell ").map(|s| s.trim().to_string())
+            version
+                .strip_prefix("PowerShell ")
+                .map(|s| s.trim().to_string())
         }
         Shell::Bash => extract_version(&version),
         Shell::Cmd => {
