@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::fmt::Display;
+use std::sync::OnceLock;
 use std::{ffi::OsStr, process::Command};
 
 #[cfg(unix)]
@@ -30,6 +31,17 @@ fn get_file_name(path: &str) -> Option<String> {
     let path = path.replace('\\', "/");
     let name = path.split('/').next_back()?.split('.').next()?.trim();
     Some(name.into())
+}
+
+fn extract_version(s: &str) -> Option<String> {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    let re = RE.get_or_init(|| Regex::new(r"([0-9]+).([0-9]+).([0-9]+)").unwrap());
+    let cap = re.captures(s)?;
+
+    if let (Some(a), Some(b), Some(c)) = (cap.get(1), cap.get(2), cap.get(3)) {
+        return Some(format!("{}.{}.{}", a.as_str(), b.as_str(), c.as_str()));
+    }
+    None
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -109,32 +121,85 @@ impl Display for Shell {
     }
 }
 
+fn get_dash_version() -> Option<String> {
+    // Try dpkg (Debian / Ubuntu / Kali)
+    if let Some(out) = exec("dpkg", vec!["-s", "dash"]) {
+        for line in out.lines() {
+            if let Some(stripped) = line.strip_prefix("Version:") {
+                return Some(stripped.trim().to_string());
+            }
+        }
+        if let Some(v) = extract_version(&out) {
+            return Some(v);
+        }
+    }
+
+    // Try pacman (Arch Linux)
+    // dash 0.5.12-1
+    if let Some(out) = exec("pacman", vec!["-Q", "dash"]) {
+        for line in out.lines() {
+            if let Some((_, v)) = line.split_once(' ') {
+                return Some(v.trim().to_string());
+            }
+        }
+        if let Some(v) = extract_version(&out) {
+            return Some(v);
+        }
+    }
+
+    // Try brew (macOS)
+    if let Some(out) = exec("brew", vec!["info", "dash"])
+        && let Some(line) = out.lines().next()
+        && line.contains("stable")
+    {
+        if let Some(v) = line
+            .split_whitespace()
+            .position(|s| s == "stable" || s == "stable:")
+            .and_then(|i| line.split_whitespace().nth(i + 1))
+        {
+            return Some(v.to_string());
+        }
+        if let Some(v) = extract_version(&out) {
+            return Some(v);
+        }
+    }
+
+    // Try rpm (CentOS / RHEL / Fedora)
+    if let Some(out) = exec("rpm", vec!["-q", "dash"]) {
+        if let Some(stripped) = out.trim().strip_prefix("dash-") {
+            return Some(stripped.trim().to_string());
+        }
+        if let Some(v) = extract_version(&out) {
+            return Some(v);
+        }
+    }
+
+    None
+}
+
 fn get_shell_version(sh: Shell) -> Option<String> {
     let args = match sh {
         Shell::PowerShell => vec!["-c", "$PSVersionTable.PSVersion -replace '\\D', '.'"],
         Shell::Ksh => vec!["-c", "echo $KSH_VERSION"],
+        Shell::Dash => return get_dash_version(),
         _ => vec!["--version"],
     };
     let version = exec(sh.to_string().as_str(), args)?;
     match sh {
         Shell::Fish => {
             // fish, version 3.6.1
-            Some(version[14..].trim().into())
+            // fish, version 4.2.1-1 (Built by MSYS2 project)
+            version
+                .strip_prefix("fish, version ")
+                .map(|s| s.split_whitespace().next().unwrap_or(s).to_string())
         }
         Shell::Pwsh => {
             // PowerShell 7.4.1
-            Some(version[11..].trim().into())
+            version
+                .strip_prefix("PowerShell ")
+                .map(|s| s.trim().to_string())
         }
-        Shell::Bash => {
-            // GNU bash, version 5.2.26(1)-release (aarch64-unknown-linux-android)
-            let re = Regex::new(r"([0-9]+).([0-9]+).([0-9]+)").unwrap();
-            let cap = re.captures(&version)?;
-
-            if let (Some(a), Some(b), Some(c)) = (cap.get(1), cap.get(2), cap.get(3)) {
-                return Some(format!("{}.{}.{}", a.as_str(), b.as_str(), c.as_str()));
-            }
-            None
-        }
+        Shell::Bash => extract_version(&version),
         Shell::Cmd => {
             // Microsoft Windows [版本 10.0.22635.2700]
             // (c) Microsoft Corporation。保留所有权利。
@@ -159,17 +224,17 @@ fn get_shell_version(sh: Shell) -> Option<String> {
         Shell::Ksh => {
             // Version AJM 93u+m/1.0.8 2024-01-01
             let v = version.split("/").nth(1)?;
-            
+
             v.split(" ").next().map(|s| s.trim().to_string())
         }
         Shell::Zsh => {
             // zsh 5.9 (x86_64-ubuntu-linux-gnu)
-            
+
             version.split(" ").nth(1).map(|s| s.trim().to_string())
         }
         Shell::Tcsh => {
             // tcsh 6.24.13 (Astron) 2024-06-12 (x86_64-unknown-linux) options wide,nls,dl,al,kan,sm,rh,nd,color,filec
-            
+
             version.split(" ").nth(1).map(|s| s.trim().to_string())
         }
         _ => None,
